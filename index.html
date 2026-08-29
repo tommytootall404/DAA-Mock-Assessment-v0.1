@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DAA Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#08202B; --ink2:#0E3040; --ink3:#14404F;
+  --rule:#1D5568; --paper:#DFEDF2; --dim:#8CAFBD;
+  --magenta:#E33F97; --green:#43C08E; --amber:#E9A63C;
+  --display:"Barlow Condensed",Impact,"Haettenschweiler",sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink); color:var(--paper); font-family:var(--body);
+  font-size:17px; line-height:1.5; min-height:100vh;
+  background-image:linear-gradient(#0B2836 1px,transparent 1px),linear-gradient(90deg,#0B2836 1px,transparent 1px);
+  background-size:64px 64px; background-position:-1px -1px;
+}
+.wrap{max-width:860px;margin:0 auto;padding:0 24px 64px}
+.eyebrow{font-family:var(--display);text-transform:uppercase;letter-spacing:.18em;font-size:14px;color:var(--dim)}
+h1{font-family:var(--display);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:clamp(38px,7vw,64px);line-height:.95;margin:8px 0 4px}
+h2{font-family:var(--display);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:clamp(26px,4.5vw,38px);margin:0 0 6px}
+p{margin:0 0 14px}
+a{color:var(--magenta)}
+.screen{display:none;padding-top:36px}
+.screen.on{display:block}
+
+/* --- sounding line: the section timer ------------------------------- */
+.sounding{position:sticky;top:0;z-index:20;background:var(--ink);border-bottom:1px solid var(--rule)}
+.sounding .track{height:6px;background:var(--ink3);position:relative;overflow:hidden}
+.sounding .line{position:absolute;inset:0 auto 0 0;background:var(--magenta);width:100%;transition:width .95s linear}
+.sounding .ticks{position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(8,32,43,.85) 1px,transparent 1px);background-size:10% 100%}
+.sounding .bar{display:flex;align-items:center;gap:16px;padding:9px 24px;max-width:860px;margin:0 auto}
+.sounding .sec{font-family:var(--display);text-transform:uppercase;letter-spacing:.14em;font-size:15px;color:var(--dim);flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sounding .clock{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.sounding .count{font-family:var(--mono);font-size:14px;color:var(--dim)}
+.low .line{background:var(--amber)}
+.critical .line{background:var(--magenta)}
+.critical .clock{color:var(--magenta)}
+
+/* --- start screen ---------------------------------------------------- */
+.rule{height:1px;background:var(--rule);margin:26px 0}
+.lede{font-size:19px;color:var(--paper);max-width:56ch}
+.muted{color:var(--dim)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin:22px 0}
+.cell{background:var(--ink);padding:14px 16px}
+.cell .n{font-family:var(--mono);font-size:22px;display:block}
+.cell .l{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:13px;color:var(--dim)}
+button{font:inherit;cursor:pointer}
+.btn{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:19px;background:var(--magenta);
+  color:#08202B;border:0;padding:14px 30px;font-weight:600}
+.btn:hover{background:#f45aa9}
+.btn.ghost{background:transparent;color:var(--paper);border:1px solid var(--rule)}
+.btn.ghost:hover{border-color:var(--magenta);color:var(--magenta);background:transparent}
+.drills{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:14px 0 0}
+.drill{display:flex;justify-content:space-between;align-items:center;gap:10px;background:transparent;border:1px solid var(--rule);
+  color:var(--paper);padding:12px 14px;text-align:left}
+.drill:hover{border-color:var(--magenta)}
+.drill span:first-child{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:17px}
+.drill span:last-child{font-family:var(--mono);font-size:13px;color:var(--dim)}
+
+/* --- question -------------------------------------------------------- */
+.pips{display:flex;gap:3px;flex-wrap:wrap;margin:0 0 26px}
+.pip{width:14px;height:3px;background:var(--ink3)}
+.pip.done{background:var(--dim)}
+.pip.now{background:var(--magenta)}
+.passage{border-left:2px solid var(--magenta);padding:2px 0 2px 16px;margin:0 0 20px;color:var(--paper);font-size:16.5px}
+.qtext{font-size:21px;line-height:1.42;margin:0 0 26px}
+.opts{display:grid;gap:9px}
+.opt{display:flex;align-items:baseline;gap:14px;width:100%;text-align:left;background:transparent;border:1px solid var(--rule);
+  color:var(--paper);padding:14px 16px;font-size:17px;transition:border-color .12s,background .12s}
+.opt:hover:not(:disabled){border-color:var(--magenta)}
+.opt:disabled{cursor:default;opacity:.45}
+.opt.chosen{border-color:var(--magenta);background:rgba(227,63,151,.14);opacity:1}
+.opt .k{font-family:var(--mono);font-size:13px;color:var(--dim);min-width:14px}
+.hint{margin-top:22px;font-size:14px;color:var(--dim)}
+
+/* --- interstitial / results ------------------------------------------ */
+.brief dl{display:grid;grid-template-columns:auto 1fr;gap:6px 20px;margin:18px 0 26px;font-size:16px}
+.brief dt{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;color:var(--dim)}
+.brief dd{margin:0;font-family:var(--mono)}
+.profile{margin:22px 0 8px}
+.row{display:grid;grid-template-columns:190px 1fr 54px;gap:14px;align-items:center;padding:9px 0;border-bottom:1px solid var(--ink2)}
+.row .name{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:16px}
+.row .meter{height:10px;background:var(--ink3);position:relative}
+.row .meter i{position:absolute;inset:0 auto 0 0;background:var(--green);display:block}
+.row .meter i.mid{background:var(--amber)}
+.row .meter i.low{background:var(--magenta)}
+.row .pc{font-family:var(--mono);text-align:right;font-size:15px}
+.review{margin-top:8px}
+.item{border-top:1px solid var(--rule);padding:18px 0}
+.item .q{font-size:17px;margin-bottom:10px}
+.item .ans{font-family:var(--mono);font-size:14.5px;margin:3px 0}
+.item .ans.you{color:var(--magenta)}
+.item .ans.right{color:var(--green)}
+.item .why{font-size:15px;color:var(--dim);margin-top:8px}
+.tag{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:12px;color:var(--dim)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+:focus-visible{outline:2px solid var(--magenta);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:560px){
+  .wrap{padding:0 16px 48px}
+  .sounding .bar{padding:9px 16px}
+  .row{grid-template-columns:1fr 54px;gap:8px}
+  .row .meter{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+
+<div class="sounding" id="sounding" style="display:none">
+  <div class="track"><div class="line" id="line"></div><div class="ticks"></div></div>
+  <div class="bar">
+    <span class="sec" id="secName">Section</span>
+    <span class="count" id="qCount">1/20</span>
+    <span class="clock" id="clock">10:00</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- START -->
+  <section class="screen on" id="scStart">
+    <span class="eyebrow">Defence Aptitude Assessment</span>
+    <h1>DAA Trainer</h1>
+    <p class="lede">Six timed sections, one question at a time. Once an answer is chosen it is locked, and once a section
+      ends you cannot go back. No calculator.</p>
+    <div class="grid" id="bankGrid"></div>
+    <button class="btn" id="startMock">Start full mock</button>
+    <div class="rule"></div>
+    <span class="eyebrow">Or drill a single section</span>
+    <div class="drills" id="drillList"></div>
+    <p class="hint">Questions are drawn at random from a bank of <b id="bankTotal">0</b>, so no two sittings are the same.
+      Answer with the mouse or press 1–4.</p>
+  </section>
+
+  <!-- SECTION BRIEF -->
+  <section class="screen brief" id="scBrief">
+    <span class="eyebrow" id="briefStep">Section 1 of 6</span>
+    <h2 id="briefName">Verbal Reasoning</h2>
+    <p class="lede" id="briefBlurb"></p>
+    <dl>
+      <dt>Questions</dt><dd id="briefCount">20</dd>
+      <dt>Time</dt><dd id="briefTime">10:00</dd>
+      <dt>Per question</dt><dd id="briefPace">30 sec</dd>
+    </dl>
+    <button class="btn" id="beginSection">Begin section</button>
+    <p class="hint">The clock starts the moment you press begin.</p>
+  </section>
+
+  <!-- QUESTION -->
+  <section class="screen" id="scQ">
+    <div class="pips" id="pips"></div>
+    <div class="passage" id="passage" style="display:none"></div>
+    <div class="qtext" id="qText"></div>
+    <div class="opts" id="opts"></div>
+    <p class="hint">Your answer locks as soon as you choose it.</p>
+  </section>
+
+  <!-- SECTION END -->
+  <section class="screen" id="scSecEnd">
+    <span class="eyebrow" id="endReason">Section complete</span>
+    <h2 id="endName"></h2>
+    <p class="lede" id="endBlurb"></p>
+    <button class="btn" id="nextSection">Continue</button>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="scResults">
+    <span class="eyebrow">Sitting complete</span>
+    <h1 id="overall">0%</h1>
+    <p class="lede" id="resLede"></p>
+    <div class="profile" id="profile"></div>
+    <div class="actions">
+      <button class="btn" id="again">Sit another</button>
+      <button class="btn ghost" id="toggleReview">Show every question</button>
+    </div>
+    <span class="eyebrow" id="reviewLabel" style="display:block;margin-top:34px">Review</span>
+    <div class="review" id="review"></div>
+  </section>
+
+</div>
+
+<script src="questions.js"></script>
+<script>
+/* ------------------------------------------------------------------ CONFIG
+   Edit these to change the shape of a sitting. seconds = whole section.     */
+const CONFIG = [
+  {key:"verbal",     name:"Verbal Reasoning",         count:20, seconds:600,
+   blurb:"Read the passage and decide what must be true from it alone \u2014 not what is merely likely."},
+  {key:"numerical",  name:"Numerical Reasoning",      count:20, seconds:600,
+   blurb:"Arithmetic, percentages, ratios and sequences. No calculator, so work on paper."},
+  {key:"workrate",   name:"Work Rate",                count:24, seconds:360,
+   blurb:"Easy questions, brutal clock. Speed and accuracy, not difficulty. Do not second-guess yourself."},
+  {key:"spatial",    name:"Spatial Reasoning",        count:18, seconds:540,
+   blurb:"Visualise the object before you look at the options. Sketching on paper is allowed and helps."},
+  {key:"mechanical", name:"Mechanical Comprehension", count:20, seconds:600,
+   blurb:"Gears, levers, pulleys, pressure. Almost every question is one principle applied to a new object."},
+  {key:"electrical", name:"Electrical Comprehension", count:20, seconds:600,
+   blurb:"Ohm's law, power, series and parallel circuits. Write V = I \u00d7 R at the top of your paper."},
+];
+const LOCK_DELAY = 220; // ms an answer stays highlighted before advancing
+
+/* -------------------------------------------------------------------- STATE */
+const BANK = window.DAA_QUESTIONS || [];
+let plan = [], sIdx = 0, qIdx = 0, queue = [], results = [], timer = null, remaining = 0, testing = false;
+
+const $ = id => document.getElementById(id);
+const shuffle = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+const show = id => { document.querySelectorAll(".screen").forEach(s => s.classList.remove("on")); $(id).classList.add("on"); window.scrollTo(0, 0); };
+
+/* -------------------------------------------------------------------- START */
+function buildStart() {
+  const grid = $("bankGrid"), list = $("drillList");
+  grid.innerHTML = ""; list.innerHTML = "";
+  CONFIG.forEach(sec => {
+    const have = BANK.filter(q => q.section === sec.key).length;
+    grid.insertAdjacentHTML("beforeend",
+      `<div class="cell"><span class="n">${have}</span><span class="l">${sec.name}</span></div>`);
+    const b = document.createElement("button");
+    b.className = "drill";
+    b.innerHTML = `<span>${sec.name}</span><span>${sec.count} Q / ${mmss(sec.seconds)}</span>`;
+    b.onclick = () => start([sec]);
+    list.appendChild(b);
+  });
+  $("bankTotal").textContent = BANK.length;
+}
+
+function start(sections) {
+  plan = sections.map(sec => {
+    const pool = shuffle(BANK.filter(q => q.section === sec.key));
+    return Object.assign({}, sec, {questions: pool.slice(0, Math.min(sec.count, pool.length))});
+  });
+  results = []; sIdx = 0; testing = true;
+  history.pushState({daa: true}, "");
+  brief();
+}
+
+/* ------------------------------------------------------------------- BRIEF */
+function brief() {
+  const sec = plan[sIdx];
+  $("briefStep").textContent = plan.length > 1 ? `Section ${sIdx + 1} of ${plan.length}` : "Single section drill";
+  $("briefName").textContent = sec.name;
+  $("briefBlurb").textContent = sec.blurb;
+  $("briefCount").textContent = sec.questions.length;
+  $("briefTime").textContent = mmss(sec.seconds);
+  $("briefPace").textContent = Math.round(sec.seconds / sec.questions.length) + " sec";
+  $("sounding").style.display = "none";
+  show("scBrief");
+}
+
+/* ---------------------------------------------------------------- SECTION */
+function beginSection() {
+  const sec = plan[sIdx];
+  queue = sec.questions; qIdx = 0;
+  remaining = sec.seconds;
+  $("secName").textContent = sec.name;
+  $("sounding").style.display = "block";
+  document.body.style.paddingTop = "0";
+  $("sounding").classList.remove("low", "critical");
+  tick(true);
+  clearInterval(timer);
+  timer = setInterval(tick, 1000);
+  renderQ();
+  show("scQ");
+}
+
+function tick(first) {
+  if (!first) remaining--;
+  const sec = plan[sIdx];
+  $("clock").textContent = mmss(Math.max(0, remaining));
+  $("line").style.width = Math.max(0, (remaining / sec.seconds) * 100) + "%";
+  const frac = remaining / sec.seconds;
+  $("sounding").classList.toggle("low", frac <= .34 && frac > .12);
+  $("sounding").classList.toggle("critical", frac <= .12);
+  if (remaining <= 0) endSection(true);
+}
+
+function renderQ() {
+  const q = queue[qIdx];
+  $("qCount").textContent = `${qIdx + 1}/${queue.length}`;
+  $("pips").innerHTML = queue.map((_, i) =>
+    `<span class="pip ${i < qIdx ? "done" : i === qIdx ? "now" : ""}"></span>`).join("");
+  if (q.passage) { $("passage").style.display = "block"; $("passage").innerHTML = q.passage; }
+  else $("passage").style.display = "none";
+  $("qText").innerHTML = q.question;
+  const box = $("opts"); box.innerHTML = "";
+  q.options.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.type = "button";
+    b.innerHTML = `<span class="k">${i + 1}</span><span>${o}</span>`;
+    b.onclick = () => choose(i, b);
+    box.appendChild(b);
+  });
+}
+
+function choose(i, btn) {
+  const q = queue[qIdx];
+  document.querySelectorAll(".opt").forEach(b => b.disabled = true); // lock: no changing your mind
+  btn.classList.add("chosen");
+  results.push({section: plan[sIdx].key, q, chosen: i, correct: i === q.answer});
+  setTimeout(() => {
+    qIdx++;
+    if (qIdx >= queue.length) endSection(false); else renderQ();
+  }, LOCK_DELAY);
+}
+
+function endSection(timedOut) {
+  clearInterval(timer);
+  for (let i = qIdx; i < queue.length; i++)
+    if (!results.some(r => r.q === queue[i]))
+      results.push({section: plan[sIdx].key, q: queue[i], chosen: null, correct: false});
+  const sec = plan[sIdx];
+  $("sounding").style.display = "none";
+  $("endReason").textContent = timedOut ? "Time expired" : "Section complete";
+  $("endName").textContent = sec.name;
+  $("endBlurb").textContent = timedOut
+    ? "The clock ran out. Unanswered questions are marked wrong, exactly as they would be on the day."
+    : (sIdx + 1 < plan.length ? "Take a breath. You cannot return to this section." : "That was the last section.");
+  $("nextSection").textContent = sIdx + 1 < plan.length ? "Next section" : "See results";
+  show("scSecEnd");
+}
+
+$("nextSection").onclick = () => { sIdx++; if (sIdx < plan.length) brief(); else finish(); };
+
+/* -------------------------------------------------------------- RESULTS */
+function finish() {
+  testing = false;
+  const total = results.length, right = results.filter(r => r.correct).length;
+  const pc = Math.round(right / total * 100);
+  $("overall").textContent = pc + "%";
+  $("resLede").textContent = `${right} of ${total} correct. There is no single DAA pass mark \u2014 each branch sets its own, so read the section profile below, not the headline.`;
+  $("profile").innerHTML = plan.map(sec => {
+    const rows = results.filter(r => r.section === sec.key);
+    const c = rows.filter(r => r.correct).length;
+    const p = rows.length ? Math.round(c / rows.length * 100) : 0;
+    const cls = p >= 75 ? "" : p >= 50 ? "mid" : "low";
+    return `<div class="row"><span class="name">${sec.name}</span>
+      <span class="meter"><i class="${cls}" style="width:${p}%"></i></span>
+      <span class="pc">${p}%</span></div>`;
+  }).join("");
+  renderReview(false);
+  show("scResults");
+}
+
+let showAll = false;
+function renderReview(all) {
+  const rows = all ? results : results.filter(r => !r.correct);
+  $("review").innerHTML = rows.length ? rows.map(r => {
+    const q = r.q;
+    return `<div class="item">
+      <span class="tag">${q.id}</span>
+      ${q.passage ? `<div class="passage">${q.passage}</div>` : ""}
+      <div class="q">${q.question}</div>
+      <div class="ans ${r.correct ? "right" : "you"}">Your answer: ${r.chosen === null ? "not answered" : q.options[r.chosen]}</div>
+      ${r.correct ? "" : `<div class="ans right">Correct: ${q.options[q.answer]}</div>`}
+      <div class="why">${q.explanation}</div>
+    </div>`;
+  }).join("") : `<div class="item"><div class="q">Nothing wrong to review. Sit another and raise the pace.</div></div>`;
+}
+$("toggleReview").onclick = () => {
+  showAll = !showAll;
+  $("toggleReview").textContent = showAll ? "Show only mistakes" : "Show every question";
+  renderReview(showAll);
+};
+$("again").onclick = () => { $("sounding").style.display = "none"; show("scStart"); };
+$("startMock").onclick = () => start(CONFIG);
+$("beginSection").onclick = beginSection;
+
+/* --------------------------------------------------------------- GUARDS */
+document.addEventListener("keydown", e => {
+  if (!$("scQ").classList.contains("on")) return;
+  const k = e.key.toLowerCase();
+  const map = {"1":0,"2":1,"3":2,"4":3,"a":0,"b":1,"c":2,"d":3};
+  if (k in map) {
+    const btns = document.querySelectorAll(".opt");
+    if (btns[map[k]] && !btns[map[k]].disabled) { e.preventDefault(); btns[map[k]].click(); }
+  }
+});
+window.addEventListener("popstate", () => {
+  if (testing) { history.pushState({daa: true}, ""); }   // no going back mid-test
+});
+window.addEventListener("beforeunload", e => { if (testing) { e.preventDefault(); e.returnValue = ""; } });
+
+if (!BANK.length) {
+  document.querySelector(".wrap").innerHTML =
+    '<section class="screen on"><h1>No questions loaded</h1><p class="lede">questions.js is missing or did not load. Keep it in the same folder as index.html and open index.html again.</p></section>';
+} else buildStart();
+</script>
+</body>
+</html>
